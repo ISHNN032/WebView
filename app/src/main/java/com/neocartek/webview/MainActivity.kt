@@ -2,50 +2,46 @@ package com.neocartek.webview
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.Resources
+import android.graphics.Bitmap
 import android.net.Uri
-import androidx.appcompat.app.AppCompatActivity
+import android.net.http.SslError
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.webkit.*
 import android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-import androidx.core.content.ContextCompat.startActivity
-import android.net.http.SslError
-
-import android.webkit.SslErrorHandler
-
-import android.webkit.WebView
-import android.content.DialogInterface
-import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.widget.TextView
-import androidx.core.content.ContextCompat
 import android.widget.Toast
-
-import androidx.annotation.NonNull
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import org.mozilla.geckoview.GeckoRuntime
+import org.mozilla.geckoview.GeckoSession
+import org.mozilla.geckoview.GeckoView
 
-import android.os.Build
 
-import android.annotation.TargetApi
-import android.provider.Settings
-import android.webkit.PermissionRequest
-
-import android.webkit.WebChromeClient
 const val CAMERA_PERMISSIONS_REQUEST_CODE = 100
 
 class MainActivity : AppCompatActivity(){
     private var mContext: Context? = null
+
     private var mWebView // 웹뷰 선언
             : WebView? = null
     private var mWebSettings //웹뷰세팅
             : WebSettings? = null
-
     private var mAddressText
             : TextView? = null
+
+    private var mGeckoView: GeckoView? = null
+    private var mSession: GeckoSession? = null
+    private var mRuntime: GeckoRuntime? = null
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,72 +50,65 @@ class MainActivity : AppCompatActivity(){
         mContext = this
         mAddressText = findViewById<TextView>(R.id.address)
 
-        // 웹뷰 시작
-        mWebView = findViewById<WebView>(R.id.webView)
-        mWebView!!.webViewClient = MyWebViewClient()
-        mWebView!!.webChromeClient = object : WebChromeClient() {
-            // Grant permissions for cam
-            override fun onPermissionRequest(request: PermissionRequest) {
-                Log.d("wcc", "onPermissionRequest")
-                runOnUiThread {
-                    Log.d("wcc", request.origin.toString())
-                    if (request.origin.toString() == "https://terrible-bulldog-48.loca.lt/") {
-                        Log.d("wcc", "GRANTED")
-                        request.grant(request.resources)
-                    } else {
-                        Log.d("wcc", "DENIED")
-                        request.deny()
-                    }
-                }
-            }
-        }
+        mGeckoView = findViewById<GeckoView>(R.id.geckoview)
+        mSession = GeckoSession()
+        mRuntime = GeckoRuntime.create(this)
+        mSession!!.settings.allowJavascript = true
+        mSession!!.open(mRuntime!!)
+        mGeckoView!!.setSession(mSession!!)
+        mSession!!.loadUri("https://brown-mule-83.loca.lt/")
 
-        mWebSettings = mWebView!!.settings //세부 세팅 등록
-        mWebSettings!!.javaScriptEnabled = true // 웹페이지 자바스크립트 허용 여부
-        mWebSettings!!.javaScriptCanOpenWindowsAutomatically = true // 자바스크립트 새창 띄우기(멀티뷰) 허용 여부
-        mWebSettings!!.mixedContentMode = MIXED_CONTENT_ALWAYS_ALLOW
-        mWebSettings!!.cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK // 브라우저 캐시 허용 여부
-
-        mWebSettings!!.loadWithOverviewMode = true // 메타태그 허용 여부
-        mWebSettings!!.builtInZoomControls = false // 화면 확대 축소 허용 여부
-        mWebSettings!!.allowContentAccess = true
-        mWebSettings!!.domStorageEnabled = true // 로컬저장소 허용 여부
-        mWebSettings!!.allowFileAccess = true
-
-        mWebSettings!!.mediaPlaybackRequiresUserGesture = false
-
-        checkVerify()
-        requestPermissions(
-            arrayOf(Manifest.permission.CAMERA),
-            CAMERA_PERMISSIONS_REQUEST_CODE
-        );
+/*      WebView Code
+//        // 웹뷰 시작
+//        mWebView = findViewById<WebView>(R.id.webView)
+//        mWebView!!.webViewClient = MyWebViewClient()
+//        mWebView!!.webChromeClient = object : WebChromeClient() {
+//            // Grant permissions for cam
+//            override fun onPermissionRequest(request: PermissionRequest) {
+//                Log.d("wcc", "onPermissionRequest")
+//                runOnUiThread {
+//                    Log.d("wcc", request.origin.toString())
+//                    if (request.origin.toString() == "https://brown-mule-83.loca.lt/") {
+//                        Log.d("wcc", "GRANTED")
+//                        request.grant(request.resources)
+//                    } else {
+//                        Log.d("wcc", "DENIED")
+//                        request.deny()
+//                    }
+//                }
+//            }
+//        }
+//
+//        mWebSettings = mWebView!!.settings //세부 세팅 등록
+//        mWebSettings!!.javaScriptEnabled = true // 웹페이지 자바스크립트 허용 여부
+//        mWebSettings!!.javaScriptCanOpenWindowsAutomatically = true // 자바스크립트 새창 띄우기(멀티뷰) 허용 여부
+//        mWebSettings!!.mixedContentMode = MIXED_CONTENT_ALWAYS_ALLOW
+////        mWebSettings!!.cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK // 브라우저 캐시 허용 여부
+//
+//        mWebSettings!!.loadWithOverviewMode = true // 메타태그 허용 여부
+//        mWebSettings!!.builtInZoomControls = false // 화면 확대 축소 허용 여부
+//        mWebSettings!!.allowContentAccess = true
+//        mWebSettings!!.domStorageEnabled = true // 로컬저장소 허용 여부
+//        mWebSettings!!.allowFileAccess = true
+//        mWebSettings!!.loadsImagesAutomatically = true
+//        mWebSettings!!.mediaPlaybackRequiresUserGesture = false
+//
+//        checkVerify()
+//        requestPermissions(
+//            arrayOf(Manifest.permission.CAMERA),
+//            CAMERA_PERMISSIONS_REQUEST_CODE
+//        );
+ */
     }
 
     override fun onApplyThemeResource(theme: Resources.Theme?, resid: Int, first: Boolean) {
         super.onApplyThemeResource(theme, resid, first)
     }
-
     override fun onBackPressed() {
-        if (mWebView?.canGoBack() == true) {
-            mWebView?.goBack()
-        }
-    }
-
-//    override fun onRequestPermissionsResult(
-//        requestCode: Int,
-//        permissions: Array<String?>,
-//        grantResults: IntArray
-//    ) {
-//        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-//        if (requestCode == CAMERA_PERMISSIONS_REQUEST_CODE) {
-//            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-//                Toast.makeText(this, "camera permission granted", Toast.LENGTH_LONG).show()
-//                mWebView!!.loadUrl("https://192.168.0.98:3000") // 웹뷰에 표시할 웹사이트 주소, 웹뷰 시작
-//            } else {
-//                Toast.makeText(this, "camera permission denied", Toast.LENGTH_LONG).show()
-//            }
+//        if (mWebView?.canGoBack() == true) {
+//            mWebView?.goBack()
 //        }
-//    }
+    }
 
     private fun checkVerify() {
         if (ContextCompat.checkSelfPermission(
@@ -169,7 +158,6 @@ class MainActivity : AppCompatActivity(){
             }
         }
     }
-
     //권한 획득 여부에 따른 결과 반환
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -179,7 +167,7 @@ class MainActivity : AppCompatActivity(){
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         //Log.d("onRequestPermissionsResult() : ","들어옴");
         if (requestCode == 1) {
-            if (grantResults.size > 0) {
+            if (grantResults.isNotEmpty()) {
                 for (i in grantResults.indices) {
                     if (grantResults[i] == PackageManager.PERMISSION_DENIED) {
                         // 카메라, 저장소 중 하나라도 거부한다면 앱실행 불가 메세지 띄움
@@ -209,13 +197,10 @@ class MainActivity : AppCompatActivity(){
                 header["Bypass-Tunnel-Reminder"] = "true"
                 header["User-Agent"] = "true"
 
-
-                mWebView!!.loadUrl("https://terrible-bulldog-48.loca.lt/", header)
+//                mWebView!!.loadUrl("https://brown-mule-83.loca.lt/", header)
             }
         }
     }
-
-
     private inner class MyWebViewClient : WebViewClient() {
         override fun onReceivedSslError(
             view: WebView?,
