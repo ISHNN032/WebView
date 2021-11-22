@@ -27,11 +27,10 @@ import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoView
 
 
-const val CAMERA_PERMISSIONS_REQUEST_CODE = 100
+const val PERMISSIONS_REQUEST_CODE = 100
 
 class MainActivity : AppCompatActivity(){
     private var mContext: Context? = null
-
     private var mWebView // 웹뷰 선언
             : WebView? = null
     private var mWebSettings //웹뷰세팅
@@ -43,6 +42,8 @@ class MainActivity : AppCompatActivity(){
     private var mSession: GeckoSession? = null
     private var mRuntime: GeckoRuntime? = null
 
+
+
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,11 +54,13 @@ class MainActivity : AppCompatActivity(){
         mGeckoView = findViewById<GeckoView>(R.id.geckoview)
         mSession = GeckoSession()
         mRuntime = GeckoRuntime.create(this)
+
+        mSession!!.permissionDelegate = WebViewPermissionDelegate(this)
+
         mSession!!.settings.allowJavascript = true
         mSession!!.open(mRuntime!!)
         mGeckoView!!.setSession(mSession!!)
-        mSession!!.loadUri("https://brown-mule-83.loca.lt/")
-
+        mSession!!.loadUri("https://e427-183-101-39-183.ngrok.io/")
 /*      WebView Code
 //        // 웹뷰 시작
 //        mWebView = findViewById<WebView>(R.id.webView)
@@ -68,7 +71,7 @@ class MainActivity : AppCompatActivity(){
 //                Log.d("wcc", "onPermissionRequest")
 //                runOnUiThread {
 //                    Log.d("wcc", request.origin.toString())
-//                    if (request.origin.toString() == "https://brown-mule-83.loca.lt/") {
+//                    if (request.origin.toString() == "https://e427-183-101-39-183.ngrok.io/") {
 //                        Log.d("wcc", "GRANTED")
 //                        request.grant(request.resources)
 //                    } else {
@@ -159,6 +162,8 @@ class MainActivity : AppCompatActivity(){
         }
     }
     //권한 획득 여부에 따른 결과 반환
+
+    /*
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<String?>,
@@ -166,7 +171,7 @@ class MainActivity : AppCompatActivity(){
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         //Log.d("onRequestPermissionsResult() : ","들어옴");
-        if (requestCode == 1) {
+        if (requestCode == CAMERA_PERMISSIONS_REQUEST_CODE) {
             if (grantResults.isNotEmpty()) {
                 for (i in grantResults.indices) {
                     if (grantResults[i] == PackageManager.PERMISSION_DENIED) {
@@ -197,10 +202,27 @@ class MainActivity : AppCompatActivity(){
                 header["Bypass-Tunnel-Reminder"] = "true"
                 header["User-Agent"] = "true"
 
-//                mWebView!!.loadUrl("https://brown-mule-83.loca.lt/", header)
+//                mWebView!!.loadUrl("https://e427-183-101-39-183.ngrok.io/", header)
             }
         }
     }
+     */
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String?>,
+        grantResults: IntArray
+    ) {
+        if (requestCode == PERMISSIONS_REQUEST_CODE
+        ) {
+            val permission: WebViewPermissionDelegate =
+                mSession!!.permissionDelegate as WebViewPermissionDelegate
+            permission.onRequestPermissionsResult(permissions, grantResults)
+        } else {
+            super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        }
+    }
+
     private inner class MyWebViewClient : WebViewClient() {
         override fun onReceivedSslError(
             view: WebView?,
