@@ -32,7 +32,7 @@ android {
 }
 ext {
     geckoviewChannel = "nightly"
-    geckoviewVersion = "96.0.20211113100827"
+    geckoviewVersion = "94.0.20211004095342"
 }
 
 dependencies {

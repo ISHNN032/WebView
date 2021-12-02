@@ -25,8 +25,9 @@ import androidx.core.content.ContextCompat
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoView
+import org.mozilla.geckoview.WebExtension
 
-
+const val HOST_URL = "https://www.neocartek-sf.cf/camera"
 const val PERMISSIONS_REQUEST_CODE = 100
 
 class MainActivity : AppCompatActivity(){
@@ -41,6 +42,7 @@ class MainActivity : AppCompatActivity(){
     private var mGeckoView: GeckoView? = null
     private var mSession: GeckoSession? = null
     private var mRuntime: GeckoRuntime? = null
+    private var mExtension: WebExtension? = null
 
 
 
@@ -57,10 +59,13 @@ class MainActivity : AppCompatActivity(){
 
         mSession!!.permissionDelegate = WebViewPermissionDelegate(this)
 
+        mRuntime!!.webExtensionController.installBuiltIn("re")
+
+
         mSession!!.settings.allowJavascript = true
         mSession!!.open(mRuntime!!)
         mGeckoView!!.setSession(mSession!!)
-        mSession!!.loadUri("https://e427-183-101-39-183.ngrok.io/")
+        mSession!!.loadUri(HOST_URL)
 /*      WebView Code
 //        // 웹뷰 시작
 //        mWebView = findViewById<WebView>(R.id.webView)
@@ -71,7 +76,7 @@ class MainActivity : AppCompatActivity(){
 //                Log.d("wcc", "onPermissionRequest")
 //                runOnUiThread {
 //                    Log.d("wcc", request.origin.toString())
-//                    if (request.origin.toString() == "https://e427-183-101-39-183.ngrok.io/") {
+//                    if (request.origin.toString() == HOST_URL) {
 //                        Log.d("wcc", "GRANTED")
 //                        request.grant(request.resources)
 //                    } else {
@@ -202,7 +207,7 @@ class MainActivity : AppCompatActivity(){
                 header["Bypass-Tunnel-Reminder"] = "true"
                 header["User-Agent"] = "true"
 
-//                mWebView!!.loadUrl("https://e427-183-101-39-183.ngrok.io/", header)
+//                mWebView!!.loadUrl(HOST_URL, header)
             }
         }
     }
