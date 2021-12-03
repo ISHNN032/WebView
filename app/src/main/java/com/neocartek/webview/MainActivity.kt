@@ -1,6 +1,7 @@
 package com.neocartek.webview
 
 import android.Manifest
+import android.R.id
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
@@ -26,11 +27,24 @@ import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoView
 import org.mozilla.geckoview.WebExtension
+import org.json.JSONObject
+
+import androidx.annotation.NonNull
+import androidx.annotation.Nullable
+
+import org.mozilla.geckoview.GeckoResult
+import org.json.JSONException
+
+import android.R.id.message
+import android.widget.Button
+import org.mozilla.geckoview.WebExtension.*
+import java.lang.RuntimeException
+
 
 const val HOST_URL = "https://www.neocartek-sf.cf/camera"
 const val PERMISSIONS_REQUEST_CODE = 100
 
-class MainActivity : AppCompatActivity(){
+class MainActivity : AppCompatActivity(), WebExtension.MessageDelegate{
     private var mContext: Context? = null
     private var mWebView // 웹뷰 선언
             : WebView? = null
@@ -39,12 +53,14 @@ class MainActivity : AppCompatActivity(){
     private var mAddressText
             : TextView? = null
 
+    private var mTestButton: Button? = null
+
     private var mGeckoView: GeckoView? = null
     private var mSession: GeckoSession? = null
     private var mRuntime: GeckoRuntime? = null
     private var mExtension: WebExtension? = null
 
-
+    private var mPort: WebExtension.Port? = null
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,19 +69,133 @@ class MainActivity : AppCompatActivity(){
         mContext = this
         mAddressText = findViewById<TextView>(R.id.address)
 
+        mTestButton = findViewById(R.id.test_button)
+        mTestButton?.setOnClickListener {
+            if (mPort == null) {
+                return@setOnClickListener
+            }
+
+            val message = JSONObject()
+            try {
+                Log.e("push", "button")
+                message.put("resolution", "720")
+//                message.put("keyCode", keyCode)
+//                message.put("event", KeyEvent.keyCodeToString(event.getKeyCode()))
+            } catch (ex: JSONException) {
+                throw RuntimeException(ex)
+            }
+
+            mPort!!.postMessage(message)
+        }
+
         mGeckoView = findViewById<GeckoView>(R.id.geckoview)
         mSession = GeckoSession()
         mRuntime = GeckoRuntime.create(this)
 
         mSession!!.permissionDelegate = WebViewPermissionDelegate(this)
 
-        mRuntime!!.webExtensionController.installBuiltIn("re")
+        mRuntime!!.webExtensionController.list().accept {
+            if (it != null) {
+                for (extension in it){
+                    Log.e("extension", extension.toString())
+                }
+            }
+        }
+        Log.e("extensionv","asfafasf");
 
+        Log.e("extensionv", mRuntime!!.webExtensionController.list().toString())
+//        mRuntime!!.webExtensionController.update(mExtension!!)
+//            .map { newExtension ->
+//                runOnUiThread{
+//                    newExtension!!.setMessageDelegate(this , "browser")
+//                }
+//            }
+
+        val downloadDelegate: DownloadDelegate = object : DownloadDelegate {
+            override fun onDownload(
+                source: WebExtension,
+                request: DownloadRequest
+            ): GeckoResult<DownloadInitData>? {
+                Log.e("download", "??????????")
+                return super.onDownload(source, request)
+            }
+        }
+
+        val portDelegate: PortDelegate = object : PortDelegate {
+            var port: Port? = null
+            override fun onPortMessage(
+                message: Any,
+                port: Port
+            ) {
+                // This method will be called every time a message is sent from the
+                // extension through this port. For now, let's just log a
+                // message.
+                Log.e(
+                    "PortDelegate", "Received message from WebExtension: "
+                            + message
+                )
+            }
+
+            override fun onDisconnect(port: Port) {
+                // After this method is called, this port is not usable anymore.
+                if (port === mPort) {
+                    mPort = null
+                }
+            }
+        }
+        val messageDelegate: MessageDelegate = object : MessageDelegate {
+            override fun onConnect(port: Port) {
+                Log.e("connected", port.name)
+                mPort = port;
+
+                // Registering the delegate will allow us to receive messages sent
+                // through this port.
+                mPort!!.setDelegate(portDelegate);
+            }
+
+            @Nullable
+            override fun onMessage(
+                nativeApp: String,
+                message: Any,
+                sender: MessageSender
+            ): GeckoResult<Any>? {
+                Log.e("MessageDelegate", message.toString())
+
+                if (message is JSONObject) {
+                    val json = message as JSONObject
+                    try {
+                        if (json.has("type") && "WPAManifest" == json.getString("type")) {
+                            val manifest = json.getJSONObject("manifest")
+                            Log.e("MessageDelegate", "Found WPA manifest: $manifest")
+                        }
+                    } catch (ex: JSONException) {
+                        Log.e("MessageDelegate", "Invalid manifest", ex)
+                    }
+                }
+                return null
+            }
+        }
+
+        mRuntime!!.webExtensionController
+            .ensureBuiltIn("resource://android/assets/messaging/", "messaging@example.com")
+            .accept(
+                { extension ->
+                    runOnUiThread {
+                        Log.e("MessageDelegate", "Extension installed: $extension")
+                        mSession!!.webExtensionController
+                            .setMessageDelegate(extension!!, messageDelegate, "browser")
+
+                        extension.setMessageDelegate(messageDelegate, "browser")
+                        extension.downloadDelegate = downloadDelegate
+                    }
+                }
+            ) { e -> Log.e("MessageDelegate", "Error registering WebExtension", e) }
 
         mSession!!.settings.allowJavascript = true
         mSession!!.open(mRuntime!!)
         mGeckoView!!.setSession(mSession!!)
         mSession!!.loadUri(HOST_URL)
+
 /*      WebView Code
 //        // 웹뷰 시작
 //        mWebView = findViewById<WebView>(R.id.webView)
