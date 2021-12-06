@@ -36,9 +36,13 @@ import org.mozilla.geckoview.GeckoResult
 import org.json.JSONException
 
 import android.R.id.message
+import android.graphics.BitmapFactory
+import android.util.Base64
 import android.widget.Button
+import android.widget.ImageView
 import org.mozilla.geckoview.WebExtension.*
 import java.lang.RuntimeException
+import kotlin.reflect.typeOf
 
 
 const val HOST_URL = "https://www.neocartek-sf.cf/camera"
@@ -54,6 +58,8 @@ class MainActivity : AppCompatActivity(), WebExtension.MessageDelegate{
             : TextView? = null
 
     private var mTestButton: Button? = null
+
+    private var mCaptureImage: ImageView? = null
 
     private var mGeckoView: GeckoView? = null
     private var mSession: GeckoSession? = null
@@ -87,6 +93,7 @@ class MainActivity : AppCompatActivity(), WebExtension.MessageDelegate{
 
             mPort!!.postMessage(message)
         }
+        mCaptureImage = findViewById(R.id.cap_image)
 
         mGeckoView = findViewById<GeckoView>(R.id.geckoview)
         mSession = GeckoSession()
@@ -130,9 +137,16 @@ class MainActivity : AppCompatActivity(), WebExtension.MessageDelegate{
                 // This method will be called every time a message is sent from the
                 // extension through this port. For now, let's just log a
                 // message.
+
+                //data:image/png;base64,
+                val data = message.toString().drop(23)
+                val imageBytes = Base64.decode(data, Base64.DEFAULT)
+                val decodedImage = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                mCaptureImage?.setImageBitmap(decodedImage)
+
                 Log.e(
-                    "PortDelegate", "Received message from WebExtension: "
-                            + message
+                    "PortDelegate", "Received message from WebExtension: " +
+                            decodedImage
                 )
             }
 

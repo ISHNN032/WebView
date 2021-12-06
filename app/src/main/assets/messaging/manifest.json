@@ -17,10 +17,6 @@
       "matches": ["*://*.twitter.com/*", "*://*/*", "*://*.neocartek-sf.cf/*"],
       "js": ["background.js"]
     },
-    {
-      "matches": ["*://*.twitter.com/*", "*://*/*", "*://*.neocartek-sf.cf/*"],
-      "js": ["camera.js"]
-    }
   ],
   "permissions": [
     "nativeMessaging",

@@ -36,4 +36,11 @@
         app:layout_constraintLeft_toLeftOf="parent"
         />
 
+    <ImageView
+        android:id="@+id/cap_image"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/test_button"
+        app:layout_constraintLeft_toLeftOf="parent"/>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

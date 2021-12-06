@@ -8,7 +8,8 @@ const canvas = document.getElementById('canvas');
 function capturePic() {
     const context = canvas.getContext('2d');
     context.drawImage(myFace, 0, 0, 1920, 1080);
-    return context.getImageData(0, 0, 1920, 1080).data;
+    //return context.getImageData(0, 0, 1920, 1080).data;
+    return canvas.toDataURL();
 }
 
 let port = browser.runtime.connectNative("browser");
@@ -20,11 +21,10 @@ port.onMessage.addListener(response => {
         res720Btn.click();
         data = capturePic();
     }
-    port.postMessage(`Received: ${data}`);
+    port.postMessage(JSON.stringify(data));
 });
 
 const testBtn = document.getElementById('test');
 testBtn.addEventListener("click", function(){
     port.postMessage("Hello from WebExtension! " + testBtn);
 });
-
